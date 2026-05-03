@@ -8,7 +8,7 @@ import doctorRoutes from "./routes/doctorRoutes.js";
 import appointmentRoutes from "./routes/appointmentRoutes.js";
 
 
-dotenv.config();
+dotenv.config({ quiet: true });
 
 const app = express();
 
