@@ -3,6 +3,7 @@ import {
   Activity,
   CalendarClock,
   ClipboardList,
+  Download,
   Edit3,
   LockKeyhole,
   LogIn,
@@ -139,6 +140,18 @@ function App() {
     ];
   }, [appointments, doctors.length, patients.length]);
 
+  const exportRowCount = useMemo(() => {
+    if (activeTab === "patients") {
+      return patients.length;
+    }
+
+    if (activeTab === "doctors") {
+      return doctors.length;
+    }
+
+    return appointments.length;
+  }, [activeTab, appointments.length, doctors.length, patients.length]);
+
   const resetForms = () => {
     setPatientForm(emptyPatient);
     setDoctorForm(emptyDoctor);
@@ -149,6 +162,63 @@ function App() {
   const showNotice = (message) => {
     setNotice(message);
     window.setTimeout(() => setNotice(""), 2500);
+  };
+
+  const exportActiveCsv = () => {
+    const exportConfig = {
+      patients: {
+        fileName: "patients.csv",
+        columns: ["id", "name", "age", "gender", "disease"],
+        rows: patients.map((patient, index) => ({
+          id: index + 1,
+          name: patient.name,
+          age: patient.age,
+          gender: patient.gender,
+          disease: patient.disease,
+        })),
+      },
+      doctors: {
+        fileName: "doctors.csv",
+        columns: ["id", "name", "specialization", "experience"],
+        rows: doctors.map((doctor, index) => ({
+          id: index + 1,
+          name: doctor.name,
+          specialization: doctor.specialization,
+          experience: doctor.experience,
+        })),
+      },
+      appointments: {
+        fileName: "appointments.csv",
+        columns: [
+          "id",
+          "patientId",
+          "patientName",
+          "doctorId",
+          "doctorName",
+          "date",
+          "status",
+        ],
+        rows: appointments.map((appointment, index) => ({
+          id: index + 1,
+          patientId: findRecordNumber(patients, normalizeRefId(appointment.patientId)),
+          patientName: readRefName(appointment.patientId),
+          doctorId: findRecordNumber(doctors, normalizeRefId(appointment.doctorId)),
+          doctorName: readRefName(appointment.doctorId),
+          date: appointment.date,
+          status: appointment.status,
+        })),
+      },
+    };
+
+    const config = exportConfig[activeTab];
+
+    if (!config || config.rows.length === 0) {
+      showNotice("No records to export");
+      return;
+    }
+
+    downloadCsv(config.fileName, config.columns, config.rows);
+    showNotice("CSV exported");
   };
 
   const handleLogin = (event) => {
@@ -411,6 +481,16 @@ function App() {
             <span className="role-pill">{authUser.label}</span>
             <button className="icon-button" type="button" onClick={loadData} title="Refresh">
               <RefreshCcw size={18} />
+            </button>
+            <button
+              className="export-button"
+              type="button"
+              onClick={exportActiveCsv}
+              disabled={loading || exportRowCount === 0}
+              title="Export CSV"
+            >
+              <Download size={17} />
+              <span>Export CSV</span>
             </button>
             {authUser.role === "patient" && (
               <button className="icon-button" type="button" onClick={handleLogout} title="Logout">
@@ -926,6 +1006,11 @@ function normalizeRefId(ref) {
   return typeof ref === "string" ? ref : ref._id;
 }
 
+function findRecordNumber(records, recordId) {
+  const index = records.findIndex((record) => record._id === recordId);
+  return index === -1 ? "" : index + 1;
+}
+
 function toDatetimeLocal(value) {
   if (!value) {
     return "";
@@ -965,6 +1050,33 @@ function formatTimeOnly(value) {
   return new Intl.DateTimeFormat(undefined, {
     timeStyle: "short",
   }).format(new Date(value));
+}
+
+function downloadCsv(fileName, columns, rows) {
+  const csv = [
+    columns.join(","),
+    ...rows.map((row) => columns.map((column) => escapeCsvValue(row[column])).join(",")),
+  ].join("\n");
+  const blob = new Blob([csv], { type: "text/csv;charset=utf-8" });
+  const url = window.URL.createObjectURL(blob);
+  const link = document.createElement("a");
+
+  link.href = url;
+  link.download = fileName;
+  document.body.appendChild(link);
+  link.click();
+  link.remove();
+  window.URL.revokeObjectURL(url);
+}
+
+function escapeCsvValue(value) {
+  const text = value === null || value === undefined ? "" : String(value);
+
+  if (/[",\n\r]/.test(text)) {
+    return `"${text.replaceAll("\"", "\"\"")}"`;
+  }
+
+  return text;
 }
 
 export default App;

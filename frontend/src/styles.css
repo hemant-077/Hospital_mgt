@@ -439,6 +439,7 @@ select:focus {
 
 .primary-button,
 .ghost-button,
+.export-button,
 .icon-button {
   display: inline-flex;
   align-items: center;
@@ -448,6 +449,7 @@ select:focus {
 }
 
 .primary-button,
+.export-button,
 .ghost-button {
   min-height: 40px;
   padding: 9px 13px;
@@ -480,6 +482,22 @@ select:focus {
   color: #9b1c1c;
   background: #fff7f7;
   border-color: #f5c8c8;
+}
+
+.export-button {
+  color: #146b63;
+  background: #ffffff;
+  border-color: #b7ddd8;
+  white-space: nowrap;
+}
+
+.export-button:hover {
+  background: #e8f8f5;
+}
+
+.export-button:disabled {
+  opacity: 0.58;
+  cursor: not-allowed;
 }
 
 .icon-button {
